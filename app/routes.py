@@ -10,7 +10,6 @@ api_bp = Blueprint('api', __name__)
 def get_items():
     db = get_db()
     
-    # Параметризованный запрос
     items = db.execute(
         "SELECT content FROM items WHERE user_id = ?",
         (request.user_id,)
@@ -28,7 +27,6 @@ def add_item():
 
     db = get_db()
     
-    # Параметризованный запрос
     db.execute(
         "INSERT INTO items (content, user_id) VALUES (?, ?)",
         (item_content, request.user_id)

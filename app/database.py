@@ -18,7 +18,6 @@ def init_db(app):
     with app.app_context():
         db = get_db()
         
-        # Параметризованные запросы для защиты от SQLi
         db.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

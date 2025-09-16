@@ -18,7 +18,6 @@ def register():
 
     db = get_db()
     
-    # Параметризованный запрос
     user = db.execute(
         "SELECT id FROM users WHERE username = ?", 
         (username,)
@@ -29,7 +28,6 @@ def register():
 
     hashed_password = generate_password_hash(password, method='scrypt')
     
-    # Параметризованный запрос
     db.execute(
         "INSERT INTO users (username, password) VALUES (?, ?)",
         (username, hashed_password)
@@ -49,7 +47,6 @@ def login():
 
     db = get_db()
     
-    # Параметризованный запрос
     user = db.execute(
         "SELECT * FROM users WHERE username = ?", 
         (username,)
