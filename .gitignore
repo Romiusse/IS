@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyd
+*.pyo
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pip-log.txt
+
+# Database
+*.db
+*.sqlite
+data.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Security reports
+bandit_results.json
+safety_results.json
+
+# System
+.DS_Store
+Thumbs.db
+
+.env
+.env.local
+.env*.local
