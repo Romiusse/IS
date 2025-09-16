@@ -1,0 +1,5 @@
+skips:
+  - B101  # Игнорировать assert в тестах
+exclude_dirs:
+  - tests
+  - migrations
