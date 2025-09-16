@@ -1,5 +1,7 @@
 # Secure Flask REST API
 
+## Project Description
+
 A secure REST API implementation using Flask with local file storage, implementing OWASP security best practices.
 
 ## Features
@@ -10,25 +12,39 @@ A secure REST API implementation using Flask with local file storage, implementi
 - Secure password storage (scrypt hashing)
 - CI/CD pipeline with security scanning
 
-## API Endpoints
-
-### Authentication
-- `POST /auth/login` - Authenticate and get JWT token
-  - Request body: `{"username": "user", "password": "pass"}`
-  - Response: `{"token": "jwt.token.here"}`
-
-- `POST /auth/register` - Register new user
-  - Request body: `{"username": "newuser", "password": "newpass"}`
-  - Response: `{"message": "User created successfully"}`
-
-### Protected Endpoints (require JWT in Authorization header)
-- `GET /api/data` - Get all items
-  - Response: `["item1", "item2", ...]`
-
-- `POST /api/items` - Add new item
-  - Request body: `{"item": "new item"}`
-  - Response: `{"message": "Item added successfully"}`
-
+# API Documentation
+## Authentication
+### User Registration
+```bash
+curl -X POST http://localhost:5000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "new_user",
+    "password": "SecurePass123!"
+  }'
+```
+### Get Access Token
+```bash
+curl -X POST http://localhost:5000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "new_user",
+    "password": "SecurePass123!"
+  }'
+```
+## Data Operations (requires token)
+### Get All Items
+```bash
+curl -X GET http://localhost:5000/api/items \
+  -H "Authorization: Bearer your_jwt_token"
+```
+### Add New Item
+```bash
+curl -X POST http://localhost:5000/api/items \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -d '{"item": "New entry"}'
+```
 ## Security Measures
 
 1. **SQL Injection Protection**:
@@ -56,3 +72,9 @@ The GitHub Actions pipeline includes:
 3. Dependency vulnerability scanning with Safety
 
 ![CI/CD Pipeline Screenshot](screenshots/pipeline.png)
+
+# Testing
+## Run test suite:
+```bash
+pytest tests/
+```
