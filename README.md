@@ -71,7 +71,7 @@ The GitHub Actions pipeline includes:
 2. Static code analysis with Bandit
 3. Dependency vulnerability scanning with Safety
 
-![CI/CD Pipeline Screenshot](screenshots/pipeline.png)
+![CI/CD Pipeline Screenshot](screenshots/pipline.png)
 
 # Testing
 ## Run test suite:
