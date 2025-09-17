@@ -24,11 +24,11 @@ jobs:
         key: odc-${{ runner.os }}-${{ hashFiles('**/requirements*.txt', '**/Pipfile.lock', '**/poetry.lock') }}
         restore-keys: |
           odc-${{ runner.os }}-
-)
+
     - name: Update NVD database
       timeout-minutes: 20
       env:
-        NVD_API_KEY: ${{ secrets.NVD_API_KEY }} 
+        NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
       run: |
         mkdir -p reports .odc-data
         docker run --rm \
