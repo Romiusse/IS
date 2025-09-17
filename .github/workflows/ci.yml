@@ -45,7 +45,6 @@ jobs:
             --nvdApiKey "${{ secrets.NVD_API_KEY }}" \
             --nvdApiDelay 8000 \
             --nvdMaxRetryCount 10 \
-            --failOnError false
 
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
