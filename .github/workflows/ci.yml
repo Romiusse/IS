@@ -13,12 +13,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -28,28 +22,33 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      
+      - name: Setup Java (required for Dependency-Check)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
           
       - name: OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
-          project: 'Your-Project-Name'
+          project: 'Your-Python-Project'
           path: '.'
           format: 'HTML'
           out: 'reports'
           args: >
             --scan .
-            --suppression ./suppression.xml
-            --failOnCVSS 7
             --enableExperimental
+            --failOnCVSS 7
             
       - name: Upload Test results
-        uses: actions/upload-artifact@v4  # Updated to v4 from v3
+        uses: actions/upload-artifact@v4
         with:
           name: Dependency Check Report
           path: ${{ github.workspace }}/reports
           
       - name: Upload sarif report to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3  # Updated to v3 from v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: ${{ github.workspace }}/reports/dependency-check-report.sarif
