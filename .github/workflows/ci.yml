@@ -1,4 +1,4 @@
-name: Dependency Check with Cached Database
+name: OWASP Dependency-Check
 
 on:
   push:
@@ -6,63 +6,35 @@ on:
   pull_request:
     branches: [ main ]
 
-permissions:
-  contents: read
-  security-events: write
-
 jobs:
-  dependency-check:
+  security-scan:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          distribution: temurin
-          java-version: '17'
+          python-version: '3.x'
 
-      - name: Cache Dependency-Check DB
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/dc-data
-          key: dc-data-${{ runner.os }}-v1
-
-      - name: Download Dependency-Check CLI
+      - name: Install dependencies
         run: |
-          set -euo pipefail
-          DC_VERSION=9.0.10
-          DC_ZIP="$RUNNER_TEMP/dependency-check-${DC_VERSION}-release.zip"
-          curl -sSL -o "$DC_ZIP" \
-            "https://github.com/jeremylong/DependencyCheck/releases/download/v${DC_VERSION}/dependency-check-${DC_VERSION}-release.zip"
-          unzip -q "$DC_ZIP" -d "$RUNNER_TEMP"
-          # Проверим, что скрипт на месте
-          test -x "$RUNNER_TEMP/dependency-check/bin/dependency-check.sh"
+          pip install -r requirements.txt
 
-      - name: Run OWASP Dependency-Check
+      - name: Download OWASP Dependency-Check
+        run: |
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.9/dependency-check-9.0.9-release.zip
+          unzip dependency-check-9.0.9-release.zip
+
+      - name: Run Dependency-Check
+        run: |
+          ./dependency-check/bin/dependency-check.sh --scan . --format HTML --project "Python-GitHub-Action" --out . --nvdApiKey ${{ secrets.NVD_API_KEY }}
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: |
-          set -euo pipefail
-          mkdir -p odc-reports
-          "$RUNNER_TEMP/dependency-check/bin/dependency-check.sh" \
-            --project "${{ github.repository }}@${{ github.ref_name }}" \
-            --scan "${{ github.workspace }}" \
-            --out "${{ github.workspace }}/odc-reports" \
-            --format HTML \
-            --data "${{ runner.temp }}/dc-data" \
-            --enableExperimental \
-            --exclude ".*/venv/.*" \
-            --exclude ".*/.venv/.*" \
-            --nvdApiKey "$NVD_API_KEY" \
-            --nvdApiDelay 12000 \
-            --failOnCVSS 7
 
-      - name: Upload HTML report
+      - name: Upload HTML report as artifact
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
-          path: odc-reports/dependency-check-report.html
-          if-no-files-found: error
+          path: dependency-check-report.html
