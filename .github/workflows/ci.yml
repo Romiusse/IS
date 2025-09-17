@@ -1,53 +1,39 @@
-name: OWASP Dependency-Check
+name: Dependency-Check with Thread Pool Fix
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: [push, pull_request]
 
 jobs:
-  security-scan:
+  dependency-check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+      - name: Clear Dependency-Check cache
+        run: rm -rf ~/.dependency-check/data
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Download OWASP Dependency-Check
+      - name: Download Latest Dependency-Check
         run: |
-          wget https://github.com/jeremylong/DependencyCheck/releases/download/v10.0.2/dependency-check-10.0.2-release.zip
-          unzip dependency-check-10.0.2-release.zip
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.9/dependency-check-9.0.9-release.zip
+          unzip dependency-check-9.0.9-release.zip
 
-      - name: Cache Dependency-Check data
-        uses: actions/cache@v4
-        with:
-          path: dc-data
-          key: dc-data-${{ runner.os }}-v1
-          restore-keys: |
-            dc-data-${{ runner.os }}-
-
-      - name: Run Dependency-Check with verified key and failOnError=false
+      - name: Run Dependency-Check with thread pool fixes
         run: |
           ./dependency-check/bin/dependency-check.sh \
             --scan . \
             --format HTML \
-            --project "Python-GitHub-Action" \
+            --project "${{ github.repository }}" \
             --out . \
-            --data dc-data \
-            --nvdApiKey "${{ secrets.NVD_API_KEY }}" \
-            --nvdApiDelay 8000 \
-            --nvdMaxRetryCount 10 \
+            --nvdApiKey ${{ secrets.NVD_API_KEY }} \
+            --nvdApiDelay 6000 \
+            --purge \
+            -javaXms2g \
+            -javaXmx4g
+        env:
+          JAVA_OPTS: "-Xms2g -Xmx4g -Dthread.timeout=300000"
 
-      - name: Upload report artifact
+      - name: Upload HTML report
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
-          path: ./dependency-check-report.html
+          path: dependency-check-report.html
