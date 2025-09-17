@@ -18,30 +18,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Cache Dependency-Check DB
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/dc-data
           key: dc-data-${{ runner.os }}-v1
 
+      - name: Download Dependency-Check CLI
+        run: |
+          set -e
+          DC_VERSION=9.0.10
+          curl -sSL -o dc.zip \
+            https://github.com/jeremylong/DependencyCheck/releases/download/v${DC_VERSION}/dependency-check-${DC_VERSION}-release.zip
+          unzip -q dc.zip -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/dependency-check-${DC_VERSION}" "$RUNNER_TEMP/dependency-check"
+
       - name: Run OWASP Dependency-Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           mkdir -p odc-reports
-          docker run --rm \
-            -e NVD_API_KEY="$NVD_API_KEY" \
-            -v "${{ github.workspace }}":/src \
-            -v "${{ runner.temp }}/dc-data":/usr/share/dependency-check/data \
-            -v "${{ github.workspace }}/odc-reports":/report \
-            owasp/dependency-check:latest \
+          "$RUNNER_TEMP/dependency-check/bin/dependency-check.sh" \
             --project "${{ github.repository }}@${{ github.ref_name }}" \
-            --scan /src \
-            --out /report \
+            --scan "${{ github.workspace }}" \
+            --out "${{ github.workspace }}/odc-reports" \
             --format HTML \
+            --data "${{ runner.temp }}/dc-data" \
             --enableExperimental \
-            --exclude "/src/venv/.*" \
-            --exclude "/src/.venv/.*" \
+            --exclude ".*/venv/.*" \
+            --exclude ".*/.venv/.*" \
             --failOnCVSS 7
 
       - name: Upload HTML report
