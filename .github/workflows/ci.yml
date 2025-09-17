@@ -57,6 +57,7 @@ jobs:
             --exclude ".*/venv/.*" \
             --exclude ".*/.venv/.*" \
             --nvdApiKey "$NVD_API_KEY" \
+            --nvdApiDelay 12000 \
             --failOnCVSS 7
 
       - name: Upload HTML report
