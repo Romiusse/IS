@@ -48,7 +48,7 @@ jobs:
           path: ${{ runner.temp }}/dc-data
           key: ${{ runner.os }}-dc-data
       - name: Run OWASP Dependency-Check (SCA)
-        uses: jeremylong/gh-action-dependency-check@v4
+        uses: dependency-check/Dependency-Check_Action@v4
         continue-on-error: true
         with:
           project: ${{ github.repository }}
