@@ -14,60 +14,38 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Cache DC DB
-      uses: actions/cache@v4
-      with:
-        path: ./.odc-data
-        key: odc-${{ runner.os }}-${{ hashFiles('**/requirements*.txt', '**/Pipfile.lock', '**/poetry.lock') }}
-        restore-keys: |
-          odc-${{ runner.os }}-
+      - name: Cache Dependency-Check DB
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/dc-data
+          key: dc-data-${{ runner.os }}-v1
 
-    - name: Update NVD database
-      timeout-minutes: 20
-      env:
-        NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-      run: |
-        mkdir -p reports .odc-data
-        docker run --rm \
-          -e NVD_API_KEY="$NVD_API_KEY" \
-          -v "$PWD/.odc-data:/usr/share/dependency-check/data" \
-          -v "$PWD/reports:/src/reports" \
-          owasp/dependency-check:latest \
-          --updateonly \
-          --log /src/reports/odc-update.log
+      - name: Run OWASP Dependency-Check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          mkdir -p odc-reports
+          docker run --rm \
+            -e NVD_API_KEY="$NVD_API_KEY" \
+            -v "${{ github.workspace }}":/src \
+            -v "${{ runner.temp }}/dc-data":/usr/share/dependency-check/data \
+            -v "${{ github.workspace }}/odc-reports":/report \
+            owasp/dependency-check:latest \
+            --project "${{ github.repository }}@${{ github.ref_name }}" \
+            --scan /src \
+            --out /report \
+            --format HTML \
+            --enableExperimental \
+            --exclude "/src/venv/.*" \
+            --exclude "/src/.venv/.*" \
+            --failOnCVSS 7
 
-    - name: Run Dependency-Check (HTML)
-      run: |
-        SAFE_PROJECT="${GITHUB_REPOSITORY//\//-}"
-        docker run --rm \
-          -v "$PWD:/src" \
-          -v "$PWD/.odc-data:/usr/share/dependency-check/data" \
-          owasp/dependency-check:latest \
-          --project "$SAFE_PROJECT" \
-          --scan /src \
-          --format HTML \
-          --out /src/reports \
-          --noupdate \
-          --failOnCVSS 7 \
-          --exclude "**/.git/**" \
-          --exclude "**/.venv/**" \
-          --exclude "**/venv/**" \
-          --exclude "**/node_modules/**" \
-          --exclude "**/dist/**" \
-          --exclude "**/build/**" \
-          --exclude "**/.tox/**" \
-          --exclude "**/.pytest_cache/**" \
-          --log /src/reports/odc-scan.log \
-          -v  # подробный вывод
-
-    - name: Upload reports
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: dependency-check-report
-        path: reports
-
-
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: odc-reports/dependency-check-report.html
+          if-no-files-found: error
