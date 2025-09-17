@@ -27,15 +27,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-dependency-check-
       
+      - name: Download OWASP Dependency-Check
+        run: |
+          mkdir -p ./dependency-check/
+          wget -q https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.0/dependency-check-8.4.0-release.zip
+          unzip -q dependency-check-8.4.0-release.zip -d ./dependency-check/
+          
       - name: Run Dependency-Check
-        uses: dependency-check/Dependency-Check_Action@main
-        with:
-          project: 'My Project'
-          path: '.'
-          format: 'HTML'
-          out: 'reports'
-          args: >
-            --enableExperimental
+        run: |
+          ./dependency-check/bin/dependency-check.sh \
+            --project "My Project" \
+            --scan . \
+            --format HTML \
+            --out reports \
+            --enableExperimental \
             --suppression suppression.xml
           
       - name: Upload report
