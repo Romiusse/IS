@@ -1,4 +1,4 @@
-name: Security CI Pipeline
+name: Security CI Pipeline with Snyk
 
 on:
   push:
@@ -7,68 +7,44 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    - name: Run tests
-      run: |
-        pytest tests/
-
-  security:
-    needs: test
+  snyk-security-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+          
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install bandit safety
-      - name: Run Bandit (SAST)
-        run: |
-          bandit -r app/ -c .bandit.yml -f json -o bandit_results.json || echo "Bandit found issues"
-      - name: Run Safety (SCA)
-        run: |
-          safety check -r requirements.txt --output json > safety_results.json || echo "Safety found issues"
-      - name: Cache Dependency-Check data
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/dc-data
-          key: ${{ runner.os }}-dc-data
-      - name: Run OWASP Dependency-Check (SCA)
-        uses: dependency-check/Dependency-Check_Action
+          pip install -r requirements.txt
+
+      - name: Snyk - Scan Open Source Dependencies (SCA)
+        uses: snyk/actions/python-3.11@master
         continue-on-error: true
         with:
-          project: ${{ github.repository }}
-          path: .
-          format: 'SARIF'
-          out: 'dependency-check-report'
-          data: ${{ runner.temp }}/dc-data
-          args: >
-            --enableExperimental
-            --failOnCVSS 11
+          command: test
+          args: --all-projects --report --sarif-file-output=snyk-oss.sarif
 
-      - name: Upload Dependency-Check SARIF to GitHub Security
+
+      - name: Snyk - Scan Code for Vulnerabilities (SAST)
+        uses: snyk/actions/python-3.11@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: code test
+          args: --sarif-file-output=snyk-code.sarif
+          
+      - name: Upload Snyk report to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: dependency-check-report/dependency-check-report.sarif
-      - name: Upload security reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-reports
-          path: |
-            bandit_results.json
-            safety_results.json
+          sarif_file: snyk-oss.sarif
 
+      - name: Upload Snyk Code report to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk-code.sarif
