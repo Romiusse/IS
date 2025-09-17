@@ -41,6 +41,4 @@ jobs:
             --out . \
             --nvdApiKey ${{ secrets.NVD_API_KEY }} \
             --nvdApiDelay 6000 \
-            --nvdMaxRetryCount 10 \
-            --connectionTimeout 30000 \
-            --readTimeout 120000
+            --nvdMaxRetryCount 10
