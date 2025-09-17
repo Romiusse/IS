@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-    
+
 jobs:
   dependency-check:
     runs-on: ubuntu-latest
@@ -27,38 +27,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-dependency-check-
       
-      # Create properties file with NVD API key
-      - name: Configure NVD API Key
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: |
-          # Create directory for dependency-check properties
-          mkdir -p ~/.dependency-check
-          
-          # Create properties file with NVD API key
-          echo "nvd.api.key=$NVD_API_KEY" > ~/.dependency-check/dependency-check.properties
-      
-      # Using latest version with correct configuration
       - name: Download and Run OWASP Dependency-Check
         run: |
-          # Create directory for dependency-check
+          # Создаем директорию для dependency-check
           mkdir -p $HOME/dependency-check
           
-          # Download the release
+          # Скачиваем релиз
           wget -q https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.0/dependency-check-8.4.0-release.zip -O $HOME/dependency-check.zip
           
-          # Unzip to the created directory
+          # Распаковываем в созданную директорию
           unzip -q $HOME/dependency-check.zip -d $HOME
           
-          # Verify the script exists and is executable
+          # Проверяем, что скрипт существует и делаем его исполняемым
           chmod +x $HOME/dependency-check/bin/dependency-check.sh
           
-          # Run dependency check
+          # Запускаем dependency check в режиме без обновления
           $HOME/dependency-check/bin/dependency-check.sh \
             --project "My Project" \
             --scan . \
             --format "HTML" \
-            --out ./reports
+            --out ./reports \
+            --noupdate
           
       - name: Upload report
         uses: actions/upload-artifact@v4
