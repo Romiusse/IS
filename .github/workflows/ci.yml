@@ -1,9 +1,13 @@
-name: Security Scan
+name: OWASP Dependency-Check
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  dependency-check:
+  security-scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -13,36 +17,30 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-          cache: 'pip' # Cache pip dependencies
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Cache Dependency-Check Data
-        uses: actions/cache@v3
-        with:
-          path: ~/.dependency-check/data
-          key: ${{ runner.os }}-dependency-check-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-dependency-check-
-
-      - name: Download Dependency-Check
+      - name: Download OWASP Dependency-Check
         run: |
-          wget -q https://github.com/dependency-check/DependencyCheck/releases/download/v9.0.9/dependency-check-9.0.9-release.zip
-          unzip -q dependency-check-9.0.9-release.zip
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.9/dependency-check-9.0.9-release.zip
+          unzip dependency-check-9.0.9-release.zip
 
-      - name: Run Dependency-Check
+      - name: Verify API key access
         run: |
-          ./dependency-check/bin/dependency-check.sh --scan . \
+          curl -H "Accept: application/json" -H "apiKey: ${{ secrets.NVD_API_KEY }}" \
+            -v "https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName=cpe:2.3:o:microsoft:windows_10:1607:*:*:*:*:*:*:*" \
+            -o /dev/null -w "%{http_code}"
+
+      - name: Run Dependency-Check with verified key
+        run: |
+          ./dependency-check/bin/dependency-check.sh \
+            --scan . \
             --format HTML \
             --project "Python-GitHub-Action" \
             --out . \
-            --nvdApiKey "4651c208-aef6-4b4c-807a-58fae9335853" \
+            --nvdApiKey ${{ secrets.NVD_API_KEY }} \
             --nvdApiDelay 6000 \
-            --failOnCVSS 7 # Optional: Fail build on high vulnerabilities
-
-      - name: Upload HTML report
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-check-report
-          path: dependency-check-report.html
+            --nvdMaxRetryCount 10 \
+            --connectionTimeout 30000 \
+            --readTimeout 120000
