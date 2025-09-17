@@ -22,30 +22,39 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      
       - name: Snyk - Scan Open Source Dependencies (SCA)
+        id: snyk_sca
         uses: snyk/actions/python-3.11@master
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: test
-          args: --all-projects --report --sarif-file-output=snyk-oss.sarif
+         
+          args: --all-projects --sarif-file-output=snyk-oss.sarif
 
+     
       - name: Snyk - Scan Code for Vulnerabilities (SAST)
+        id: snyk_sast
         uses: snyk/actions/python-3.11@master
         continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: code test
           args: --sarif-file-output=snyk-code.sarif
-          
-      - name: Upload Snyk report to GitHub Security
+      
+
+      - name: List files in the workspace
+        run: ls -laR
+
+      - name: Upload Snyk SCA report to GitHub Security
+      
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk-oss.sarif
 
-      - name: Upload Snyk Code report to GitHub Security
+      - name: Upload Snyk SAST report to GitHub Security
+        if: ${{ always() }}
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk-code.sarif
