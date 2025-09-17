@@ -1,4 +1,4 @@
-name: OWASP Dependency Check
+name: OWASP Dependency-Check
 
 on:
   push:
@@ -11,61 +11,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup Java
+        uses: actions/setup-java@v3
         with:
-          python-version: '3.x'
+          distribution: 'temurin'
+          java-version: '17'
           
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Cache dependency-check data
+        uses: actions/cache@v3
+        with:
+          path: ~/.dependency-check
+          key: ${{ runner.os }}-dependency-check-${{ hashFiles('**/pom.xml', '**/build.gradle', '**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-dependency-check-
       
-  
-      - name: Set up Java
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-17-jdk
-          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-          
-      - name: Verify Java installation
-        run: |
-          echo "JAVA_HOME=$JAVA_HOME"
-          java -version
-          
-      - name: Download OWASP Dependency-Check
-        run: |
-          mkdir -p dependency-check
-          cd dependency-check
-          wget https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.8/dependency-check-9.0.8-release.zip
-          unzip dependency-check-9.0.8-release.zip
-          chmod +x dependency-check/bin/dependency-check.sh
-          
-      - name: Create reports directory
-        run: mkdir -p reports
-          
-      - name: Run OWASP Dependency-Check
-        run: |
-          cd dependency-check
-          ./dependency-check/bin/dependency-check.sh \
-            --scan ../ \
-            --project "Python-Project" \
-            --format "HTML" \
-            --format "SARIF" \
-            --out ../reports \
+      - name: Run Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'My Project'
+          path: '.'
+          format: 'HTML'
+          out: 'reports'
+          args: >
             --enableExperimental
-        continue-on-error: true
-            
-      - name: Upload Test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: Dependency Check Report
-          path: reports
+            --suppression suppression.xml
           
-      - name: Upload SARIF report to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+      - name: Upload report
+        uses: actions/upload-artifact@v3
         with:
-          sarif_file: reports/dependency-check-report.sarif
+          name: dependency-check-report
+          path: reports/dependency-check-report.html
+          
+      - name: Check for vulnerabilities
+        run: |
+          if grep -q "<td>High</td>" reports/dependency-check-report.html || grep -q "<td>Critical</td>" reports/dependency-check-report.html; then
+            echo "High or Critical vulnerabilities found!"
+            exit 1
+          fi
