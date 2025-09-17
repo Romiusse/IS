@@ -64,11 +64,11 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: dependency-check-report/dependency-check-report.sarif
-          - name: Upload security reports
-            uses: actions/upload-artifact@v4
-            with:
-              name: security-reports
-              path: |
-                bandit_results.json
-                safety_results.json
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            bandit_results.json
+            safety_results.json
 
