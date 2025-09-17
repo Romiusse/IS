@@ -1,10 +1,12 @@
-name: Dependency Check Without API Key
+name: Dependency Check with Cached Database
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly
 
 jobs:
   dependency-check:
@@ -14,12 +16,25 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
+    - name: Cache vulnerability database
+      id: cache-db
+      uses: actions/cache@v4
+      with:
+        path: ./.dependency-check-data
+        key: ${{ runner.os }}-dependency-check-db-${{ github.run_id }}
+        restore-keys: |
+          ${{ runner.os }}-dependency-check-db-
+      
+    - name: Ensure cache directory exists
+      run: mkdir -p ./.dependency-check-data
+      
     - name: Run Dependency-Check with Docker
       run: |
         mkdir -p reports
         
         docker run --rm \
           -v $(pwd):/src \
+          -v $(pwd)/.dependency-check-data:/usr/share/dependency-check/data \
           -v $(pwd)/reports:/report \
           owasp/dependency-check:latest \
           --scan /src \
@@ -27,8 +42,7 @@ jobs:
           --format "XML" \
           --project "My Python Project" \
           --out /report \
-          --enableExperimental \
-          --noupdate
+          --enableExperimental
       
     - name: Upload Dependency-Check reports
       uses: actions/upload-artifact@v4
