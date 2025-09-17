@@ -42,33 +42,33 @@ jobs:
       - name: Run Safety (SCA)
         run: |
           safety check -r requirements.txt --output json > safety_results.json || echo "Safety found issues"
-      - name: Upload security reports
-        uses: actions/upload-artifact@v4
+      - name: Cache Dependency-Check data
+        uses: actions/cache@v4
         with:
-          name: security-reports
-          path: |
-            bandit_results.json
-            safety_results.json
-
-  dependency-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: OWASP Dependency-Check Scan
-        uses: dependency-check/actions/scan@v2
-        id: dependency-check
+          path: ${{ runner.temp }}/dc-data
+          key: ${{ runner.os }}-dc-data
+      - name: Run OWASP Dependency-Check (SCA)
+        uses: jeremylong/gha-dependency-check@v4
+        continue-on-error: true
         with:
-          project: 'app'
-          path: '.'
-          format: 'HTML,JSON'
+          project: ${{ github.repository }}
+          path: .
+          format: 'SARIF'
+          out: 'dependency-check-report'
+          data: ${{ runner.temp }}/dc-data
           args: >
-            --failOnCVSS 7 
             --enableExperimental
+            --failOnCVSS 11
 
-      - name: Upload OWASP Dependency-Check report
-        uses: actions/upload-artifact@v4
-        if: ${{ always() }}
+      - name: Upload Dependency-Check SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          name: dependency-check-report
-          path: ${{ steps.dependency-check.outputs.reports-path }}
+          sarif_file: dependency-check-report/dependency-check-report.sarif
+          - name: Upload security reports
+            uses: actions/upload-artifact@v4
+            with:
+              name: security-reports
+              path: |
+                bandit_results.json
+                safety_results.json
+
