@@ -17,19 +17,18 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Cache Dependency-Check DB
+    - name: Cache DC DB
       uses: actions/cache@v4
       with:
         path: ./.odc-data
         key: odc-${{ runner.os }}-${{ hashFiles('**/requirements*.txt', '**/Pipfile.lock', '**/poetry.lock') }}
         restore-keys: |
           odc-${{ runner.os }}-
-
-    # 1) Быстрое обновление БД с ключом
+)
     - name: Update NVD database
       timeout-minutes: 20
       env:
-        NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        NVD_API_KEY: ${{ secrets.NVD_API_KEY }} 
       run: |
         mkdir -p reports .odc-data
         docker run --rm \
@@ -38,9 +37,9 @@ jobs:
           -v "$PWD/reports:/src/reports" \
           owasp/dependency-check:latest \
           --updateonly \
+          --cveValidForHours 168 \
           --log /src/reports/odc-update.log
 
-    # 2) Сканирование без повторного апдейта
     - name: Run Dependency-Check (HTML)
       run: |
         SAFE_PROJECT="${GITHUB_REPOSITORY//\//-}"
@@ -58,7 +57,12 @@ jobs:
           --exclude "**/.venv/**" \
           --exclude "**/venv/**" \
           --exclude "**/node_modules/**" \
-          --log /src/reports/odc-scan.log
+          --exclude "**/dist/**" \
+          --exclude "**/build/**" \
+          --exclude "**/.tox/**" \
+          --exclude "**/.pytest_cache/**" \
+          --log /src/reports/odc-scan.log \
+          -v  # подробный вывод
 
     - name: Upload reports
       if: always()
@@ -66,4 +70,5 @@ jobs:
       with:
         name: dependency-check-report
         path: reports
+
 
