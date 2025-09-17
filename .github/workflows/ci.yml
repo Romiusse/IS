@@ -13,49 +13,49 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
-    - name: Install dependencies
-      run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-    - name: Download OWASP Dependency-Check
-      run: |
-        wget https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.9/dependency-check-9.0.9-release.zip
-        unzip dependency-check-9.0.9-release.zip
+      - name: Download OWASP Dependency-Check
+        run: |
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.9/dependency-check-9.0.9-release.zip
+          unzip dependency-check-9.0.9-release.zip
 
-    - name: Cache Dependency-Check data
-      uses: actions/cache@v4
-      with:
-        path: dc-data
-        key: dc-data-${{ runner.os }}-v1
-        restore-keys: |
-          dc-data-${{ runner.os }}-
+      - name: Cache Dependency-Check data
+        uses: actions/cache@v4
+        with:
+          path: dc-data
+          key: dc-data-${{ runner.os }}-v1
+          restore-keys: |
+            dc-data-${{ runner.os }}-
 
-    - name: Verify API key access
-      run: |
-        curl -H "Accept: application/json" -H "apiKey: ${{ secrets.NVD_API_KEY }}" \
-          -v "https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName=cpe:2.3:o:microsoft:windows_10:1607:*:*:*:*:*:*:*" \
-          -o /dev/null -w "%{http_code}"
+      - name: Verify API key access
+        run: |
+          curl -H "Accept: application/json" -H "apiKey: ${{ secrets.NVD_API_KEY }}" \
+            -v "https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName=cpe:2.3:o:microsoft:windows_10:1607:*:*:*:*:*:*:*" \
+            -o /dev/null -w "%{http_code}"
 
-    - name: Run Dependency-Check with verified key and failOnError=false
-      run: |
-        ./dependency-check/bin/dependency-check.sh \
-          --scan . \
-          --format HTML \
-          --project "Python-GitHub-Action" \
-          --out . \
-          --data dc-data \
-          --cveValidForHours 168 \
-          --nvdApiKey "${{ secrets.NVD_API_KEY }}" \
-          --nvdApiDelay 8000 \
-          --nvdMaxRetryCount 10 \
-          --failOnError false
+      - name: Run Dependency-Check with verified key and failOnError=false
+        run: |
+          ./dependency-check/bin/dependency-check.sh \
+            --scan . \
+            --format HTML \
+            --project "Python-GitHub-Action" \
+            --out . \
+            --data dc-data \
+            --cveValidForHours 168 \
+            --nvdApiKey "${{ secrets.NVD_API_KEY }}" \
+            --nvdApiDelay 8000 \
+            --nvdMaxRetryCount 10 \
+            --failOnError false
 
-    - name: Upload report artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: dependency-check-report
-        path: ./dependency-check-report.html
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: ./dependency-check-report.html
