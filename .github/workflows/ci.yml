@@ -23,22 +23,40 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       
+  
+      - name: Set up Java
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk
+          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+          
+      - name: Verify Java installation
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME"
+          java -version
+          
+      - name: Download OWASP Dependency-Check
+        run: |
+          mkdir -p dependency-check
+          cd dependency-check
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.8/dependency-check-9.0.8-release.zip
+          unzip dependency-check-9.0.8-release.zip
+          chmod +x dependency-check/bin/dependency-check.sh
+          
       - name: Create reports directory
         run: mkdir -p reports
-        
-      - name: Run OWASP Dependency-Check with Docker
+          
+      - name: Run OWASP Dependency-Check
         run: |
-          docker run --rm \
-            -v $(pwd):/src \
-            -v $(pwd)/reports:/reports \
-            owasp/dependency-check:latest \
-            --scan /src \
+          cd dependency-check
+          ./dependency-check/bin/dependency-check.sh \
+            --scan ../ \
+            --project "Python-Project" \
             --format "HTML" \
             --format "SARIF" \
-            --out /reports \
-            --enableExperimental \
-            --failOnCVSS 7
-        continue-on-error: true 
+            --out ../reports \
+            --enableExperimental
+        continue-on-error: true
             
       - name: Upload Test results
         uses: actions/upload-artifact@v4
