@@ -38,7 +38,7 @@ jobs:
             --project "Python-GitHub-Action" \
             --out . \
             --nvdApiKey ${{ secrets.NVD_API_KEY }} \
-            --nvdDelay 6000 \
+            --nvdApiDelay 6000 \
             --failOnCVSS 7 # Optional: Fail build on high vulnerabilities
 
       - name: Upload HTML report
