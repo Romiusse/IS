@@ -1,12 +1,10 @@
-name: Dependency Check
+name: Dependency Check Without API Key
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  schedule:
-    - cron: '0 0 * * 0'  # Run weekly
 
 jobs:
   dependency-check:
@@ -16,53 +14,31 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-        
-    - name: Verify Java installation
+    - name: Run Dependency-Check with Docker
       run: |
-        echo "JAVA_HOME=$JAVA_HOME"
-        java -version
+        mkdir -p reports
         
-    - name: Cache Dependency-Check data
-      uses: actions/cache@v4
-      with:
-        path: ~/.dependency-check-data
-        key: ${{ runner.os }}-dependency-check-data
-      
-    - name: Download and run Dependency-Check
-      run: |
-        # Create directories
-        mkdir -p $HOME/dependency-check/data
-        mkdir -p $HOME/dependency-check/reports
-        
-        # Download the latest release
-        wget -q https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.2/dependency-check-8.4.2-release.zip
-        unzip -q dependency-check-8.4.2-release.zip
-        
-        # Run the dependency check
-        ./dependency-check/bin/dependency-check.sh \
-          --project "project" \
-          --scan . \
-          --format HTML \
-          --format XML \
+        docker run --rm \
+          -v $(pwd):/src \
+          -v $(pwd)/reports:/report \
+          owasp/dependency-check:latest \
+          --scan /src \
+          --format "HTML" \
+          --format "XML" \
+          --project "My Python Project" \
+          --out /report \
           --enableExperimental \
-          --out $HOME/dependency-check/reports \
-          --scan "**/*.py" \
-          --scan "requirements.txt"
+          --noupdate
       
     - name: Upload Dependency-Check reports
       uses: actions/upload-artifact@v4
       with:
         name: dependency-check-reports
-        path: ~/dependency-check/reports/
+        path: reports/
         
     - name: Check for high severity issues
       run: |
-        if grep -q "CVSS score >= 8.0" $HOME/dependency-check/reports/dependency-check-report.html; then
+        if grep -q "CVSS score >= 8.0" reports/dependency-check-report.html; then
           echo "High severity vulnerabilities found!"
           exit 1
         fi
