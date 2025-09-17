@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   dependency-check:
@@ -18,45 +17,31 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Set up Python (for Pip analyzer)
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Cache Dependency-Check data
+    - name: Cache Dependency-Check DB
       uses: actions/cache@v4
       with:
-        path: ~/.m2/repository/org/owasp/dependency-check
-        key: odc-${{ runner.os }}-${{ hashFiles('**/requirements*.txt', '**/Pipfile.lock') }}
+        path: ./.odc-data
+        key: odc-${{ runner.os }}-${{ hashFiles('**/requirements*.txt', '**/Pipfile.lock', '**/poetry.lock') }}
         restore-keys: |
           odc-${{ runner.os }}-
 
-    - name: Run OWASP Dependency-Check (Docker)
+    - name: Run OWASP Dependency-Check (HTML)
       run: |
-        mkdir -p reports
+        mkdir -p reports .odc-data
+        SAFE_PROJECT="${GITHUB_REPOSITORY//\//-}"  # Romiusse-IS
         docker run --rm \
           -v "$PWD:/src" \
-          -v "$HOME/.m2:/root/.m2" \
+          -v "$PWD/.odc-data:/usr/share/dependency-check/data" \
           owasp/dependency-check:latest \
-          --project "${{ github.repository }}" \
+          --project "$SAFE_PROJECT" \
           --scan /src \
           --format HTML \
           --out /src/reports \
           --failOnCVSS 7
-      # No API key is provided on purpose; first run may be slower due to rate limiting
 
-    - name: Upload SARIF to GitHub Security
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: reports/dependency-check-report.sarif
-
-    - name: Upload full report artifact
+    - name: Upload HTML report
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: dependency-check-report
-        path: reports
-        run: |
-          if grep -q "CVSS score >= 8.0" reports/dependency-check-report.html; then
-            echo "High severity vulnerabilities found!"
-            exit 1
-          fi
+        path: reports/dependency-check-report.html
