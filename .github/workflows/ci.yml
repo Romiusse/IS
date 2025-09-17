@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-
+    
 jobs:
   dependency-check:
     runs-on: ubuntu-latest
@@ -27,9 +27,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-dependency-check-
       
-      - name: Download and Run OWASP Dependency-Check
+      # Create properties file with NVD API key
+      - name: Configure NVD API Key
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          # Create directory for dependency-check properties
+          mkdir -p ~/.dependency-check
+          
+          # Create properties file with NVD API key
+          echo "nvd.api.key=$NVD_API_KEY" > ~/.dependency-check/dependency-check.properties
+      
+      # Using latest version with correct configuration
+      - name: Download and Run OWASP Dependency-Check
         run: |
           # Create directory for dependency-check
           mkdir -p $HOME/dependency-check
@@ -43,14 +53,12 @@ jobs:
           # Verify the script exists and is executable
           chmod +x $HOME/dependency-check/bin/dependency-check.sh
           
-          # Run dependency check with NVD API key
+          # Run dependency check
           $HOME/dependency-check/bin/dependency-check.sh \
             --project "My Project" \
             --scan . \
             --format "HTML" \
-            --out ./reports \
-            --nvdApiKey "$NVD_API_KEY" \
-            --disableMirror
+            --out ./reports
           
       - name: Upload report
         uses: actions/upload-artifact@v4
