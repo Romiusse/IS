@@ -26,7 +26,6 @@ jobs:
             --out . \
             --nvdApiKey ${{ secrets.NVD_API_KEY }} \
             --nvdApiDelay 6000 \
-            --purge
         env:
           JAVA_OPTS: "-Xms2g -Xmx4g -Dthread.timeout=300000"
 
