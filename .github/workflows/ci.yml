@@ -45,17 +45,14 @@ jobs:
         
         # Run the dependency check
         ./dependency-check/bin/dependency-check.sh \
-          --project "My Python Project" \
+          --project "project" \
           --scan . \
           --format HTML \
           --format XML \
           --enableExperimental \
           --out $HOME/dependency-check/reports \
           --scan "**/*.py" \
-          --scan "requirements.txt" \
-          --scan "Pipfile" \
-          --scan "Pipfile.lock" \
-          --scan "poetry.lock"
+          --scan "requirements.txt"
       
     - name: Upload Dependency-Check reports
       uses: actions/upload-artifact@v4
