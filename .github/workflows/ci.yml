@@ -24,7 +24,7 @@ jobs:
       - name: Download OWASP Dependency-Check
         run: |
           wget https://github.com/jeremylong/DependencyCheck/releases/download/v10.0.2/dependency-check-10.0.2-release.zip
-          unzip dependency-check-9.0.9-release.zip
+          unzip dependency-check-10.0.2-release.zip
 
       - name: Cache Dependency-Check data
         uses: actions/cache@v4
