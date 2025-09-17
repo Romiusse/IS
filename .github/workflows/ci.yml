@@ -40,7 +40,7 @@ jobs:
           owasp/dependency-check:latest \
           --project "${{ github.repository }}" \
           --scan /src \
-          --format ALL \
+          --format HTML \
           --out /src/reports \
           --failOnCVSS 7
       # No API key is provided on purpose; first run may be slower due to rate limiting
