@@ -38,7 +38,6 @@ jobs:
           -v "$PWD/reports:/src/reports" \
           owasp/dependency-check:latest \
           --updateonly \
-          --cveValidForHours 168 \
           --log /src/reports/odc-update.log
 
     # 2) Сканирование без повторного апдейта
