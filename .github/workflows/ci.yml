@@ -49,3 +49,26 @@ jobs:
           path: |
             bandit_results.json
             safety_results.json
+
+  dependency-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: OWASP Dependency-Check Scan
+        uses: dependency-check/actions/scan@v2
+        id: dependency-check
+        with:
+          project: 'app'
+          path: '.'
+          format: 'HTML,JSON'
+          args: >
+            --failOnCVSS 7 
+            --enableExperimental
+
+      - name: Upload OWASP Dependency-Check report
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: dependency-check-report
+          path: ${{ steps.dependency-check.outputs.reports-path }}
