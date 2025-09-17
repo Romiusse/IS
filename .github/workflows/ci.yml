@@ -5,6 +5,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Запуск каждое воскресенье
 
 jobs:
   dependency-check:
@@ -22,12 +24,13 @@ jobs:
       - name: Cache dependency-check data
         uses: actions/cache@v4
         with:
-          path: ~/.dependency-check
-          key: ${{ runner.os }}-dependency-check-${{ hashFiles('**/pom.xml', '**/build.gradle', '**/package.json') }}
+          path: ~/.dependency-check/data
+          key: ${{ runner.os }}-dependency-check-data-${{ hashFiles('**/pom.xml', '**/build.gradle', '**/package.json') }}
           restore-keys: |
-            ${{ runner.os }}-dependency-check-
+            ${{ runner.os }}-dependency-check-data-
       
-      - name: Download and Run OWASP Dependency-Check
+      # Скачиваем и запускаем OWASP Dependency-Check с инициализацией базы данных
+      - name: Download and Initialize OWASP Dependency-Check
         run: |
           # Создаем директорию для dependency-check
           mkdir -p $HOME/dependency-check
@@ -41,7 +44,15 @@ jobs:
           # Проверяем, что скрипт существует и делаем его исполняемым
           chmod +x $HOME/dependency-check/bin/dependency-check.sh
           
-          # Запускаем dependency check в режиме без обновления
+          # Создаем директорию для базы данных
+          mkdir -p ~/.dependency-check/data
+          
+          # Скачиваем и инициализируем базу данных с помощью команды --updateonly
+          $HOME/dependency-check/bin/dependency-check.sh --updateonly
+          
+      # Запускаем сканирование с флагом --noupdate после того, как база инициализирована
+      - name: Run OWASP Dependency-Check Scan
+        run: |
           $HOME/dependency-check/bin/dependency-check.sh \
             --project "My Project" \
             --scan . \
