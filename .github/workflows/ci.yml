@@ -37,7 +37,7 @@ jobs:
             --format HTML \
             --project "Python-GitHub-Action" \
             --out . \
-            --nvdApiKey ${{ secrets.NVD_API_KEY }} \
+            --nvdApiKey "4651c208-aef6-4b4c-807a-58fae9335853" \
             --nvdApiDelay 6000 \
             --failOnCVSS 7 # Optional: Fail build on high vulnerabilities
 
