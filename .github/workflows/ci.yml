@@ -27,31 +27,44 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-dependency-check-
       
-      - name: Download OWASP Dependency-Check
+      # Using a verified approach - downloading and running dependency-check directly
+      - name: Download and Run OWASP Dependency-Check
         run: |
-          mkdir -p ./dependency-check/
-          wget -q https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.0/dependency-check-8.4.0-release.zip
-          unzip -q dependency-check-8.4.0-release.zip -d ./dependency-check/
+          # Create directory for dependency-check
+          mkdir -p $HOME/dependency-check
           
-      - name: Run Dependency-Check
-        run: |
-          ./dependency-check/bin/dependency-check.sh \
+          # Download the release
+          wget -q https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.0/dependency-check-8.4.0-release.zip -O $HOME/dependency-check.zip
+          
+          # Unzip to the created directory
+          unzip -q $HOME/dependency-check.zip -d $HOME
+          
+          # Verify the script exists and is executable
+          ls -la $HOME/dependency-check/bin/
+          chmod +x $HOME/dependency-check/bin/dependency-check.sh
+          
+          # Run dependency check
+          $HOME/dependency-check/bin/dependency-check.sh \
             --project "My Project" \
             --scan . \
-            --format HTML \
-            --out reports \
-            --enableExperimental \
-            --suppression suppression.xml
+            --format "HTML" \
+            --out ./reports \
+            --enableExperimental
           
       - name: Upload report
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
-          path: reports/dependency-check-report.html
+          path: ./reports/dependency-check-report.html
           
       - name: Check for vulnerabilities
         run: |
-          if grep -q "<td>High</td>" reports/dependency-check-report.html || grep -q "<td>Critical</td>" reports/dependency-check-report.html; then
-            echo "High or Critical vulnerabilities found!"
+          if [ -f "./reports/dependency-check-report.html" ]; then
+            if grep -q "<td>High</td>" ./reports/dependency-check-report.html || grep -q "<td>Critical</td>" ./reports/dependency-check-report.html; then
+              echo "High or Critical vulnerabilities found!"
+              exit 1
+            fi
+          else
+            echo "Report file not found!"
             exit 1
           fi
