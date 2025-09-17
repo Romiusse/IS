@@ -32,17 +32,20 @@ jobs:
 
       - name: Download Dependency-Check CLI
         run: |
-          set -e
+          set -euo pipefail
           DC_VERSION=9.0.10
-          curl -sSL -o dc.zip \
-            https://github.com/jeremylong/DependencyCheck/releases/download/v${DC_VERSION}/dependency-check-${DC_VERSION}-release.zip
-          unzip -q dc.zip -d "$RUNNER_TEMP"
-          mv "$RUNNER_TEMP/dependency-check-${DC_VERSION}" "$RUNNER_TEMP/dependency-check"
+          DC_ZIP="$RUNNER_TEMP/dependency-check-${DC_VERSION}-release.zip"
+          curl -sSL -o "$DC_ZIP" \
+            "https://github.com/jeremylong/DependencyCheck/releases/download/v${DC_VERSION}/dependency-check-${DC_VERSION}-release.zip"
+          unzip -q "$DC_ZIP" -d "$RUNNER_TEMP"
+          # Проверим, что скрипт на месте
+          test -x "$RUNNER_TEMP/dependency-check/bin/dependency-check.sh"
 
       - name: Run OWASP Dependency-Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
+          set -euo pipefail
           mkdir -p odc-reports
           "$RUNNER_TEMP/dependency-check/bin/dependency-check.sh" \
             --project "${{ github.repository }}@${{ github.ref_name }}" \
