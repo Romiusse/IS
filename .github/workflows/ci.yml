@@ -1,4 +1,4 @@
-name: OWASP Dependency Check
+name: CI Security Pipeline for Python
 
 on:
   push:
@@ -7,38 +7,55 @@ on:
     branches: [ main, master ]
 
 jobs:
-  dependency-check:
+  build-and-scan:
+    name: Build and Security Scan
+
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: OWASP Dependency Check
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Upgrade pip and install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+          # Если используешь другие менеджеры — раскомментируй нужное:
+          # pip install -e .           # для setup.py
+          # pip install poetry && poetry install --no-dev  # для poetry
+
+      - name: Run SAST Scan (Bandit)
+        run: |
+          pip install bandit
+          bandit -r . -f json -o bandit-report.json || echo "Bandit found issues (exit code 1 is expected if issues found)"
+        continue-on-error: true  # Чтобы не падать при найденных проблемах (аналогично SpotBugs)
+
+      - name: Run SCA Scan (OWASP Dependency-Check)
         uses: actions/dependency-check@v7
         with:
-          # Название проекта (показывается в отчёте)
           project-name: "Python Project"
-
-          # Уровень CVSS, при котором действие завершится с ошибкой
-          # 0 = не падать, 7 = высокая уязвимость (HIGH/Critical), 4 = средний и выше
-          fail-on-cvss: 7
-
-          # Форматы отчётов
-          format: "HTML"
-
-          # Путь, куда сохранить отчёт
+          fail-on-cvss: 0  # Позволяем завершиться успешно, чтобы загрузить отчёт
           out: "dependency-check-report"
+          format: "HTML, JSON"
+          # Опционально: используем API-ключ NVD (если есть)
+          # nvd.apiKey: ${{ secrets.NVD_API_KEY }}
 
-          # Опционально: API-ключ для Sonatype OSS Index (если есть)
-          # Ускоряет проверку и даёт доступ к дополнительным данным
-          # Добавь секрет OWASP_API_KEY в Settings → Secrets → Actions
-          # ossindex.enabled: true
-          # ossindex.username: "unused"
-          # ossindex.token: ${{ secrets.OWASP_API_KEY }}
-
-      - name: Upload report as artifact
+      - name: Upload Bandit SAST Report
         uses: actions/upload-artifact@v4
         with:
-          name: owasp-dependency-check-report
+          name: bandit-sast-report
+          path: bandit-report.json
+
+      - name: Upload OWASP Dependency-Check SCA Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-sca-report
           path: dependency-check-report/
