@@ -1,29 +1,44 @@
-name: Dependency-Check Security Scan
+name: OWASP Dependency Check
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
-  depchecktest:
+  dependency-check:
     runs-on: ubuntu-latest
-    name: depecheck_test
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Build project with Maven
-        run: mvn clean install
-      - name: Depcheck
-        uses: dependency-check/Dependency-Check_Action@main
-        id: Depcheck
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: OWASP Dependency Check
+        uses: actions/dependency-check@v7
         with:
-          project: 'test'
-          path: '.'
-          format: 'HTML'
-          out: 'reports'
-          args: >
-            --failOnCVSS 7
-            --enableRetired
-      - name: Upload Test results
-        uses: actions/upload-artifact@master
+          # Название проекта (показывается в отчёте)
+          project-name: "Python Project"
+
+          # Уровень CVSS, при котором действие завершится с ошибкой
+          # 0 = не падать, 7 = высокая уязвимость (HIGH/Critical), 4 = средний и выше
+          fail-on-cvss: 7
+
+          # Форматы отчётов
+          format: "HTML"
+
+          # Путь, куда сохранить отчёт
+          out: "dependency-check-report"
+
+          # Опционально: API-ключ для Sonatype OSS Index (если есть)
+          # Ускоряет проверку и даёт доступ к дополнительным данным
+          # Добавь секрет OWASP_API_KEY в Settings → Secrets → Actions
+          # ossindex.enabled: true
+          # ossindex.username: "unused"
+          # ossindex.token: ${{ secrets.OWASP_API_KEY }}
+
+      - name: Upload report as artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: Depcheck report
-          path: ${{github.workspace}}/reports
+          name: owasp-dependency-check-report
+          path: dependency-check-report/
