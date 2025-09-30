@@ -1,35 +1,52 @@
-name: Dependency-Check with Thread Pool Fix
+# .github/workflows/dependency‑check.yml
+name: Dependency‑Check
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  dependency-check:
+  scan:
     runs-on: ubuntu-latest
     steps:
+      # 1️⃣  Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Clear Dependency-Check cache
+      # 2️⃣  (Опционально) Очистить кеш Dependency‑Check,
+      #     чтобы убедиться, что используется свежая база NVD.
+      - name: Clear Dependency‑Check cache
         run: rm -rf ~/.dependency-check/data
 
-      - name: Download Latest Dependency-Check
+      # 3️⃣  Скачать и распаковать последнюю стабильную версию
+      - name: Download Dependency‑Check
         run: |
-          wget https://github.com/jeremylong/DependencyCheck/releases/download/v10.0.2/dependency-check-10.0.2-release.zip
-          unzip dependency-check-10.0.2-release.zip
+          wget -q https://github.com/jeremylong/DependencyCheck/releases/download/v10.0.2/dependency-check-10.0.2-release.zip
+          unzip -q dependency-check-10.0.2-release.zip
 
-      - name: Run Dependency-Check with thread pool fixes
+      # 4️⃣  Запуск сканера
+      #     • --format HTML – получаем удобный отчёт  
+      #     • --project – имя репозитория  
+      #     • --out .   – сохраняем в корень рабочего каталога  
+      #     • --nvdApiKey – токен, если он у вас есть (можно опустить)  
+      #     • --nvdApiDelay 6000 – снизить нагрузку на NVD (6 сек.)  
+      - name: Run Dependency‑Check
         run: |
           ./dependency-check/bin/dependency-check.sh \
             --scan . \
             --format HTML \
             --project "${{ github.repository }}" \
             --out . \
-            --nvdApiKey ${{ secrets.NVD_API_KEY }} \
-            --nvdApiDelay 6000 \
+            ${{ secrets.NVD_API_KEY && '--nvdApiKey ${{ secrets.NVD_API_KEY }}' }} \
+            --nvdApiDelay 6000
         env:
-          JAVA_OPTS: "-Xms2g -Xmx4g -Dthread.timeout=300000"
+          # Достаточно указать пределы памяти; остальные параметры не требуются
+          JAVA_TOOL_OPTIONS: "-Xms2g -Xmx4g"
 
-      - name: Upload HTML report
+      # 5️⃣  Сохранить HTML‑отчёт как артефакт
+      - name: Upload report
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
