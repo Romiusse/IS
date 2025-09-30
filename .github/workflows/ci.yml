@@ -20,6 +20,7 @@ jobs:
       - name: Run Dependency-Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          JAVA_TOOL_OPTIONS: "-Xms2g -Xmx4g"
         run: |
           # Формируем команду с учетом наличия API ключа
           COMMAND="./dependency-check/bin/dependency-check.sh \
@@ -36,9 +37,6 @@ jobs:
           
           # Выполняем команду
           eval $COMMAND
-        env:
-          JAVA_TOOL_OPTIONS: "-Xms2g -Xmx4g"
-
       - name: Upload HTML report
         uses: actions/upload-artifact@v4
         with:
