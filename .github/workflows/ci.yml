@@ -39,14 +39,14 @@ jobs:
         continue-on-error: true  # Чтобы не падать при найденных проблемах (аналогично SpotBugs)
 
       - name: Run SCA Scan (OWASP Dependency-Check)
-        uses: actions/dependency-check@v7
+        uses: dependency-check/Dependency-Check_Action@main
         with:
           project-name: "Python Project"
           fail-on-cvss: 0  # Позволяем завершиться успешно, чтобы загрузить отчёт
           out: "dependency-check-report"
           format: "HTML, JSON"
           # Опционально: используем API-ключ NVD (если есть)
-          # nvd.apiKey: ${{ secrets.NVD_API_KEY }}
+          nvd.apiKey: ${{ secrets.NVD_API_KEY }}
 
       - name: Upload Bandit SAST Report
         uses: actions/upload-artifact@v4
