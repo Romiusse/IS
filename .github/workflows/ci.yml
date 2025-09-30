@@ -1,57 +1,45 @@
-# .github/workflows/dependency-check.yml
-name: Dependency‑Check
+name: Dependency-Check Security Scan
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: [push, pull_request]
 
 jobs:
-  scan:
+  dependency-check:
     runs-on: ubuntu-latest
     steps:
-      # 1️⃣ Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ (Optional) очистка кеша – гарантирует свежую базу NVD
-      - name: Clear Dependency‑Check cache
+      - name: Clear Dependency-Check cache
         run: rm -rf ~/.dependency-check/data
 
-      # 3️⃣ Скачивание последней версии Dependency‑Check
-      - name: Download Dependency‑Check
+      - name: Download Latest Dependency-Check
         run: |
           wget -q https://github.com/jeremylong/DependencyCheck/releases/download/v10.0.2/dependency-check-10.0.2-release.zip
           unzip -q dependency-check-10.0.2-release.zip
 
-      # 4️⃣ Запуск сканера
-      #    • Если секрет NVD_API_KEY задан – добавляем параметр --nvdApiKey,
-      #      иначе просто пропускаем его.
-      - name: Run Dependency‑Check
+      - name: Run Dependency-Check
         env:
-          # JVM‑память (необязательно, но удобно)
-          JAVA_TOOL_OPTIONS: "-Xms2g -Xmx4g"
-          # Если секрет существует – он будет доступен как обычная переменная $NVD_API_KEY
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
-          # Формируем список аргументов, учитывая наличие ключа
-          args="--scan . \
-                --format HTML \
-                --project \"${{ github.repository }}\" \
-                --out . \
-                --nvdApiDelay 6000"
-
-          # Если переменная NVD_API_KEY не пустая – добавляем флаг
-          if [[ -n \"$NVD_API_KEY\" ]]; then
-            args=\"$args --nvdApiKey $NVD_API_KEY\"
+          # Формируем команду с учетом наличия API ключа
+          COMMAND="./dependency-check/bin/dependency-check.sh \
+            --scan . \
+            --format HTML \
+            --project \"${{ github.repository }}\" \
+            --out . \
+            --nvdApiDelay 6000"
+          
+          # Добавляем API ключ если он есть
+          if [ -n "$NVD_API_KEY" ]; then
+            COMMAND="$COMMAND --nvdApiKey $NVD_API_KEY"
           fi
+          
+          # Выполняем команду
+          eval $COMMAND
+        env:
+          JAVA_TOOL_OPTIONS: "-Xms2g -Xmx4g"
 
-          # Запуск сканера
-          ./dependency-check/bin/dependency-check.sh $args
-
-      # 5️⃣ Сохранить HTML‑отчёт как артефакт
-      - name: Upload report
+      - name: Upload HTML report
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
